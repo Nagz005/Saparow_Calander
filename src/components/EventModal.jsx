@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Clock, Tag, FileText, Trash2 } from "lucide-react"
+import { X, Clock, Tag, FileText, Trash2, Calendar } from "lucide-react"
 import { Button } from "./ui/button"
 
 const EventModal = ({ isOpen, onClose, event, onSave, onDelete, categories, selectedDate }) => {
@@ -12,6 +12,7 @@ const EventModal = ({ isOpen, onClose, event, onSave, onDelete, categories, sele
     category: "work",
     color: "blue",
     description: "",
+    type: "event", // event or leave
   })
 
   useEffect(() => {
@@ -23,6 +24,7 @@ const EventModal = ({ isOpen, onClose, event, onSave, onDelete, categories, sele
         category: event.category || "work",
         color: event.color || "blue",
         description: event.description || "",
+        type: event.type || "event",
       })
     } else if (selectedDate) {
       const startTime = new Date(selectedDate)
@@ -37,6 +39,7 @@ const EventModal = ({ isOpen, onClose, event, onSave, onDelete, categories, sele
         category: "work",
         color: "blue",
         description: "",
+        type: "event",
       })
     }
   }, [event, selectedDate])
@@ -55,6 +58,17 @@ const EventModal = ({ isOpen, onClose, event, onSave, onDelete, categories, sele
       end: new Date(formData.end),
     }
 
+    // If it's a leave day, set it for the full day
+    if (formData.type === "leave") {
+      const startDate = new Date(formData.start)
+      const endDate = new Date(formData.start)
+      startDate.setHours(0, 0, 0, 0)
+      endDate.setHours(23, 59, 59, 999)
+      eventData.start = startDate
+      eventData.end = endDate
+      eventData.color = "red"
+    }
+
     if (event) {
       onSave(event.id, eventData)
     } else {
@@ -70,11 +84,29 @@ const EventModal = ({ isOpen, onClose, event, onSave, onDelete, categories, sele
     }
   }
 
+  const handleTypeChange = (type) => {
+    setFormData({ ...formData, type })
+    if (type === "leave") {
+      // Set default leave day times
+      const startDate = new Date(formData.start)
+      startDate.setHours(0, 0, 0, 0)
+      const endDate = new Date(formData.start)
+      endDate.setHours(23, 59, 59, 999)
+      setFormData({
+        ...formData,
+        type,
+        start: formatDateTimeLocal(startDate),
+        end: formatDateTimeLocal(endDate),
+        color: "red",
+      })
+    }
+  }
+
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             {event ? "Edit Event" : "Create Event"}
@@ -85,11 +117,43 @@ const EventModal = ({ isOpen, onClose, event, onSave, onDelete, categories, sele
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Event Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <Calendar className="inline h-4 w-4 mr-2" />
+              Type
+            </label>
+            <div className="flex space-x-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="type"
+                  value="event"
+                  checked={formData.type === "event"}
+                  onChange={(e) => handleTypeChange(e.target.value)}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Regular Event</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="type"
+                  value="leave"
+                  checked={formData.type === "leave"}
+                  onChange={(e) => handleTypeChange(e.target.value)}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">Leave Day</span>
+              </label>
+            </div>
+          </div>
+
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <FileText className="inline h-4 w-4 mr-2" />
-              Title
+              {formData.type === "leave" ? "Leave Reason" : "Title"}
             </label>
             <input
               type="text"
@@ -97,7 +161,7 @@ const EventModal = ({ isOpen, onClose, event, onSave, onDelete, categories, sele
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Event title"
+              placeholder={formData.type === "leave" ? "Vacation, Sick leave, etc." : "Event title"}
             />
           </div>
 
@@ -109,10 +173,18 @@ const EventModal = ({ isOpen, onClose, event, onSave, onDelete, categories, sele
                 Start
               </label>
               <input
-                type="datetime-local"
+                type={formData.type === "leave" ? "date" : "datetime-local"}
                 required
-                value={formData.start}
-                onChange={(e) => setFormData({ ...formData, start: e.target.value })}
+                value={formData.type === "leave" ? formData.start.split("T")[0] : formData.start}
+                onChange={(e) => {
+                  if (formData.type === "leave") {
+                    const date = new Date(e.target.value)
+                    date.setHours(0, 0, 0, 0)
+                    setFormData({ ...formData, start: formatDateTimeLocal(date) })
+                  } else {
+                    setFormData({ ...formData, start: e.target.value })
+                  }
+                }}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -122,50 +194,62 @@ const EventModal = ({ isOpen, onClose, event, onSave, onDelete, categories, sele
                 End
               </label>
               <input
-                type="datetime-local"
+                type={formData.type === "leave" ? "date" : "datetime-local"}
                 required
-                value={formData.end}
-                onChange={(e) => setFormData({ ...formData, end: e.target.value })}
+                value={formData.type === "leave" ? formData.end.split("T")[0] : formData.end}
+                onChange={(e) => {
+                  if (formData.type === "leave") {
+                    const date = new Date(e.target.value)
+                    date.setHours(23, 59, 59, 999)
+                    setFormData({ ...formData, end: formatDateTimeLocal(date) })
+                  } else {
+                    setFormData({ ...formData, end: e.target.value })
+                  }
+                }}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
 
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <Tag className="inline h-4 w-4 mr-2" />
-              Category
-            </label>
-            <select
-              value={formData.category}
-              onChange={(e) => {
-                const category = categories.find((c) => c.id === e.target.value)
-                setFormData({
-                  ...formData,
-                  category: e.target.value,
-                  color: category?.color || "blue",
-                })
-              }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Category (only for regular events) */}
+          {formData.type === "event" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <Tag className="inline h-4 w-4 mr-2" />
+                Category
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => {
+                  const category = categories.find((c) => c.id === e.target.value)
+                  setFormData({
+                    ...formData,
+                    category: e.target.value,
+                    color: category?.color || "blue",
+                  })
+                }}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {formData.type === "leave" ? "Additional Notes" : "Description"}
+            </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Event description (optional)"
+              placeholder={formData.type === "leave" ? "Additional notes (optional)" : "Event description (optional)"}
             />
           </div>
 

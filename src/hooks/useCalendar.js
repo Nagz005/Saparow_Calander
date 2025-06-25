@@ -15,6 +15,7 @@ export const useCalendar = () => {
       category: "work",
       color: "blue",
       description: "Weekly team sync",
+      type: "event",
     },
     {
       id: 2,
@@ -24,6 +25,7 @@ export const useCalendar = () => {
       category: "personal",
       color: "green",
       description: "Catch up over lunch",
+      type: "event",
     },
     {
       id: 3,
@@ -33,6 +35,27 @@ export const useCalendar = () => {
       category: "work",
       color: "red",
       description: "Final project submission",
+      type: "event",
+    },
+    {
+      id: 4,
+      title: "Vacation",
+      start: new Date(2024, 11, 30, 0, 0),
+      end: new Date(2024, 11, 30, 23, 59),
+      category: "personal",
+      color: "red",
+      description: "Annual leave",
+      type: "leave",
+    },
+    {
+      id: 5,
+      title: "Sick Leave",
+      start: new Date(2024, 11, 27, 0, 0),
+      end: new Date(2024, 11, 27, 23, 59),
+      category: "personal",
+      color: "red",
+      description: "Not feeling well",
+      type: "leave",
     },
   ])
   const [draggedEvent, setDraggedEvent] = useState(null)
@@ -68,8 +91,17 @@ export const useCalendar = () => {
   const getEventsForDate = useCallback(
     (date) => {
       return events.filter((event) => {
-        const eventDate = new Date(event.start)
-        return eventDate.toDateString() === date.toDateString()
+        const eventStart = new Date(event.start)
+        const eventEnd = new Date(event.end)
+        const targetDate = new Date(date)
+
+        // For leave days, check if the date falls within the leave period
+        if (event.type === "leave") {
+          return targetDate >= new Date(eventStart.toDateString()) && targetDate <= new Date(eventEnd.toDateString())
+        }
+
+        // For regular events, check if they occur on the same date
+        return eventStart.toDateString() === targetDate.toDateString()
       })
     },
     [events],
@@ -86,12 +118,21 @@ export const useCalendar = () => {
       filtered = filtered.filter(
         (event) =>
           event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          event.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+          event.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (event.type === "leave" && "leave".includes(searchQuery.toLowerCase())),
       )
     }
 
     return filtered
   }, [events, selectedCategory, searchQuery])
+
+  const getLeaveEvents = useCallback(() => {
+    return events.filter((event) => event.type === "leave")
+  }, [events])
+
+  const getRegularEvents = useCallback(() => {
+    return events.filter((event) => event.type !== "leave")
+  }, [events])
 
   return {
     currentDate,
@@ -116,5 +157,7 @@ export const useCalendar = () => {
     deleteEvent,
     getEventsForDate,
     getFilteredEvents,
+    getLeaveEvents,
+    getRegularEvents,
   }
 }

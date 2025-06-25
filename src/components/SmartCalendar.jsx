@@ -4,6 +4,9 @@ import { useState, useEffect } from "react"
 import { useCalendar } from "../hooks/useCalendar"
 import CalendarHeader from "./CalendarHeader"
 import MonthView from "./MonthView"
+import WeekView from "./WeekView"
+import DayView from "./DayView"
+import AgendaView from "./AgendaView"
 import Sidebar from "./Sidebar"
 import EventModal from "./EventModal"
 
@@ -30,12 +33,15 @@ const SmartCalendar = () => {
     deleteEvent,
     getEventsForDate,
     getFilteredEvents,
+    getLeaveEvents,
+    getRegularEvents,
   } = useCalendar()
 
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [showEventModal, setShowEventModal] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [darkMode, setDarkMode] = useState(false)
+  const [displayDate, setDisplayDate] = useState(currentDate)
 
   // Apply dark mode
   useEffect(() => {
@@ -58,6 +64,11 @@ const SmartCalendar = () => {
 
   const handleDateClick = (date) => {
     setSelectedDate(date)
+  }
+
+  const handleTimeSlotClick = (dateTime) => {
+    setSelectedDate(dateTime)
+    setShowEventModal(true)
   }
 
   const handleEventSave = (eventIdOrData, eventData) => {
@@ -91,6 +102,62 @@ const SmartCalendar = () => {
 
   const filteredEvents = getFilteredEvents()
 
+  const renderCurrentView = () => {
+    switch (view) {
+      case "week":
+        return (
+          <WeekView
+            currentDate={currentDate}
+            setCurrentDate={setCurrentDate}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            events={filteredEvents}
+            onEventClick={handleEventClick}
+            onDateClick={handleDateClick}
+            onTimeSlotClick={handleTimeSlotClick}
+          />
+        )
+      case "day":
+        return (
+          <DayView
+            currentDate={currentDate}
+            setCurrentDate={setCurrentDate}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            events={filteredEvents}
+            onEventClick={handleEventClick}
+            onTimeSlotClick={handleTimeSlotClick}
+          />
+        )
+      case "agenda":
+        return (
+          <AgendaView
+            currentDate={currentDate}
+            setCurrentDate={setCurrentDate}
+            events={filteredEvents}
+            onEventClick={handleEventClick}
+            searchQuery={searchQuery}
+          />
+        )
+      default:
+        return (
+          <div className="flex-1 overflow-hidden">
+            <MonthView
+              currentDate={currentDate}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              events={filteredEvents}
+              getEventsForDate={getEventsForDate}
+              onEventClick={handleEventClick}
+              onDateClick={handleDateClick}
+              onEventDrop={handleEventDrop}
+              onDisplayDateChange={setDisplayDate}
+            />
+          </div>
+        )
+    }
+  }
+
   return (
     <div className="h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
       <CalendarHeader
@@ -104,7 +171,7 @@ const SmartCalendar = () => {
         onToggleSettings={() => setShowSettings(!showSettings)}
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         <Sidebar
           categories={categories}
           selectedCategory={selectedCategory}
@@ -114,22 +181,12 @@ const SmartCalendar = () => {
           setCurrentDate={setCurrentDate}
           darkMode={darkMode}
           setDarkMode={setDarkMode}
+          leaveEvents={getLeaveEvents()}
+          regularEvents={getRegularEvents()}
+          displayDate={view === "month" ? displayDate : currentDate}
         />
 
-        <div className="flex-1 overflow-hidden">
-          {view === "month" && (
-            <MonthView
-              currentDate={currentDate}
-              selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate}
-              events={filteredEvents}
-              getEventsForDate={getEventsForDate}
-              onEventClick={handleEventClick}
-              onDateClick={handleDateClick}
-              onEventDrop={handleEventDrop}
-            />
-          )}
-        </div>
+        <div className="flex-1 min-h-0 overflow-hidden">{renderCurrentView()}</div>
       </div>
 
       <EventModal

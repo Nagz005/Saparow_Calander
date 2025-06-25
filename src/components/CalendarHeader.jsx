@@ -1,7 +1,9 @@
 "use client"
 
 import { ChevronLeft, ChevronRight, Calendar, Grid, List, Clock, Search, Plus, Settings } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "./ui/button"
+import { useState } from "react"
+import DateFilter from "./DateFilter"
 
 const CalendarHeader = ({
   currentDate,
@@ -13,6 +15,8 @@ const CalendarHeader = ({
   onCreateEvent,
   onToggleSettings,
 }) => {
+  const [showDateFilter, setShowDateFilter] = useState(false)
+
   const navigateMonth = (direction) => {
     setCurrentDate((prev) => {
       const newDate = new Date(prev)
@@ -52,6 +56,9 @@ const CalendarHeader = ({
             </Button>
             <Button variant="outline" onClick={goToToday}>
               Today
+            </Button>
+            <Button variant="outline" onClick={() => setShowDateFilter(true)}>
+              Go to Date
             </Button>
             <Button variant="outline" size="icon" onClick={() => navigateMonth("next")}>
               <ChevronRight className="h-4 w-4" />
@@ -101,6 +108,13 @@ const CalendarHeader = ({
           </Button>
         ))}
       </div>
+      {showDateFilter && (
+        <DateFilter
+          currentDate={currentDate}
+          setCurrentDate={setCurrentDate}
+          onClose={() => setShowDateFilter(false)}
+        />
+      )}
     </div>
   )
 }

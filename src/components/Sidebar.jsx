@@ -14,6 +14,9 @@ const Sidebar = ({
   setCurrentDate,
   darkMode,
   setDarkMode,
+  leaveEvents,
+  regularEvents,
+  displayDate = currentDate,
 }) => {
   const [showMiniCalendar, setShowMiniCalendar] = useState(true)
 
@@ -21,9 +24,12 @@ const Sidebar = ({
   const currentMonth = currentDate.getMonth()
   const currentYear = currentDate.getFullYear()
 
+  const displayMonth = displayDate.getMonth()
+  const displayYear = displayDate.getFullYear()
+
   const renderMiniCalendar = () => {
-    const firstDay = new Date(currentYear, currentMonth, 1)
-    const lastDay = new Date(currentYear, currentMonth + 1, 0)
+    const firstDay = new Date(displayYear, displayMonth, 1)
+    const lastDay = new Date(displayYear, displayMonth + 1, 0)
     const daysInMonth = lastDay.getDate()
     const startingDayOfWeek = firstDay.getDay()
 
@@ -36,7 +42,7 @@ const Sidebar = ({
 
     // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentYear, currentMonth, day)
+      const date = new Date(displayYear, displayMonth, day)
       const isToday = date.toDateString() === today.toDateString()
       const hasEvents = events.some((event) => new Date(event.start).toDateString() === date.toDateString())
 
@@ -82,7 +88,7 @@ const Sidebar = ({
           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
             <div className="text-center mb-3">
               <h4 className="font-medium text-gray-900 dark:text-white">
-                {currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                {displayDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </h4>
             </div>
             <div className="grid grid-cols-7 gap-1 text-center mb-2">
@@ -174,7 +180,7 @@ const Sidebar = ({
             Notifications
           </button>
 
-          <button className="w-full flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300">
+          {/* <button className="w-full flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300">
             <Download className="h-4 w-4 mr-3" />
             Export Calendar
           </button>
@@ -182,7 +188,7 @@ const Sidebar = ({
           <button className="w-full flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300">
             <Upload className="h-4 w-4 mr-3" />
             Import Calendar
-          </button>
+          </button> */}
         </div>
       </div>
 
